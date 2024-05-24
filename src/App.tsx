@@ -1,16 +1,11 @@
-import React from 'react';
-import './App.css';
-import { Weather } from './view/Weather';
+import React from "react";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-      </header>
-      <body>
-      </body>
-    </div>
-  );
+import { Weather } from "./view/Weather";
+
+export default function App() {
+	return (
+		<main className="w-screen h-screen flex flex-col">
+			<Weather />
+		</main>
+	);
 }
-
-export default App;
