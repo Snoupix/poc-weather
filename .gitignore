@@ -24,3 +24,4 @@ yarn-error.log*
 
 # Contains only the REACT_APP_WEATHER_API_KEY
 .env
+*.vim
