@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 import Loader from "./loader";
@@ -67,11 +67,7 @@ type WeatherData = {
 
 const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
 
-async function getWeather(
-	lat: WeatherProps["lat"],
-	lon: WeatherProps["lon"],
-	setWeatherState: React.Dispatch<React.SetStateAction<WeatherData | null>>,
-) {
+async function getWeather(lat: WeatherProps["lat"], lon: WeatherProps["lon"]) {
 	try {
 		const res = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
 			params: {
@@ -82,40 +78,43 @@ async function getWeather(
 			},
 		});
 
-		setWeatherState(res.data as WeatherData);
+		return res.data as WeatherData;
 	} catch (e) {
 		console.error("Unexpected error on weather fetching: ", e);
 	}
 }
 
 export default function Weather({ lat, lon, time }: WeatherProps) {
-	const [weatherState, setWeatherState] = useState<WeatherData | null>(null);
-	const cachedWeather = useMemo(() => getWeather(lat, lon, setWeatherState), [lat, lon]);
+	const { isLoading, error, data } = useQuery({
+		queryKey: [lat, lon],
+		queryFn: () => getWeather(lat, lon),
+	});
 
-	if (cachedWeather == undefined) {
+	if (error != null) {
+		console.error(error);
 		return <span className="text-red-500">Unexpected error: please check the console</span>;
 	}
 
-	if (weatherState == null) {
+	if (isLoading || data == undefined) {
 		return <Loader />;
 	}
 
 	return (
 		<section className="xl:text-lg text-sm">
 			<p>
-				Current weather for your city: {weatherState.name} ({weatherState.sys.country})
+				Current weather for your city: {data.name} ({data.sys.country})
 			</p>
 			<p>At: {time}</p>
 			<p>
-				Temp: {weatherState.main.temp}°C ({weatherState.main.temp_min}°C - {weatherState.main.temp_max}°C)
+				Temp: {data.main.temp}°C ({data.main.temp_min}°C - {data.main.temp_max}°C)
 			</p>
-			<p>Wind speed: {weatherState.wind.speed}M/s</p>
-			<p>Wind direction: {weatherState.wind.deg}deg</p>
-			<p>Clouds: {weatherState.clouds.all}%</p>
-			<p>Humidity: {weatherState.main.humidity}</p>
+			<p>Wind speed: {data.wind.speed}M/s</p>
+			<p>Wind direction: {data.wind.deg}deg</p>
+			<p>Clouds: {data.clouds.all}%</p>
+			<p>Humidity: {data.main.humidity}</p>
 			<div>-</div>
-			{weatherState.weather.map(w => (
-				<p>
+			{data.weather.map((w, i) => (
+				<p key={i}>
 					{w.main} ({w.description})
 				</p>
 			))}

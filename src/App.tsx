@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 
 import Loader from "./view/loader";
 import Weather from "./view/Weather";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 export default function App() {
 	const [geolocation, setGeolocation] = useState<GeolocationPosition | null>(null);
 	const [getPosError, setGetPosError] = useState<GeolocationPositionError | null>(null);
+	const [geoInterval, setGeoInterval] = useState<NodeJS.Timeout | null>(null);
 
 	// useEffect(() => {
 	//     const watcher = navigator.geolocation.watchPosition(
@@ -21,14 +23,22 @@ export default function App() {
 	// }, []);
 	useEffect(() => {
 		// TODO: The navigator watcher has some issues with my build of Firefox try to migrate it to a setInterval instead
-		navigator.geolocation.getCurrentPosition(
-			position => setGeolocation(position),
-			error => setGetPosError(error),
-			{
-				timeout: 10000,
-				enableHighAccuracy: false,
-			},
+		setGeoInterval(
+			setInterval(() => {
+				navigator.geolocation.getCurrentPosition(
+					position => setGeolocation(position),
+					error => setGetPosError(error),
+					{
+						timeout: 10000,
+						enableHighAccuracy: false,
+					},
+				);
+			}, 5000),
 		);
+
+		return () => {
+			geoInterval && clearInterval(geoInterval);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -38,22 +48,24 @@ export default function App() {
 	}, [getPosError]);
 
 	return (
-		<main className="w-screen h-screen flex flex-col bg-emerald-800 text-sky-50 text-center font-semibold">
-			<section className="m-auto xl:w-3/12 w-8/12">
-				<h1 className="text-2xl mb-10">Simple weather app</h1>
-				{getPosError != null && getPosError.code != getPosError.TIMEOUT ? (
-					<h2>An unexpected error occured: {getPosError!.message}</h2>
-				) : null}
-				{getPosError == null && geolocation != null ? (
-					<Weather
-						lat={geolocation.coords.latitude}
-						lon={geolocation.coords.longitude}
-						time={new Date(geolocation.timestamp).toLocaleTimeString()}
-					/>
-				) : (
-					<Loader />
-				)}
-			</section>
-		</main>
+		<QueryClientProvider client={new QueryClient()}>
+			<main className="w-screen h-screen flex flex-col bg-emerald-800 text-sky-50 text-center font-semibold">
+				<section className="m-auto xl:w-3/12 w-8/12">
+					<h1 className="text-2xl mb-10">Simple weather app</h1>
+					{getPosError != null && getPosError.code != getPosError.TIMEOUT ? (
+						<h2>An unexpected error occured: {getPosError!.message}</h2>
+					) : null}
+					{getPosError == null && geolocation != null ? (
+						<Weather
+							lat={geolocation.coords.latitude}
+							lon={geolocation.coords.longitude}
+							time={new Date(geolocation.timestamp).toLocaleTimeString()}
+						/>
+					) : (
+						<Loader />
+					)}
+				</section>
+			</main>
+		</QueryClientProvider>
 	);
 }
